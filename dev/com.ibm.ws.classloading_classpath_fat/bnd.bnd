@@ -52,7 +52,12 @@ src: \
 	test-applications/testResourceAdaptor.jar/src, \
 	test-resourceadapters/testDummyRA/src, \
 	test-bundles/userApiBundle/src, \
-	test-bundles/libraryUserBundle/src
+	test-bundles/libraryUserBundle/src, \
+	test-applications/testDynamicFeatureApp.war/src, \
+	test-applications/testDynamicFeatureSharedLibApp.war/src, \
+	test-applications/testSharedFeatureLib.jar/src, \
+	test-applications/testDynamicFeatureBellApp.war/src, \
+	test-bundles/testFeatureApiBundle/src
 
 fat.project: true
 -sub: *.bnd

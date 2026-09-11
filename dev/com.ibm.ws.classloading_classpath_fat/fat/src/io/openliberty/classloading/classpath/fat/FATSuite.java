@@ -13,6 +13,7 @@
 package io.openliberty.classloading.classpath.fat;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -53,7 +54,11 @@ import io.openliberty.classloading.classpath.test.war1.ClassPathDefaultLoaderSer
 import io.openliberty.classloading.classpath.test.war2.ClassPathDefaultLoaderServletTest2;
 import io.openliberty.classloading.classpath.test.war3.ClassPathDefaultLoaderServletTest3;
 import io.openliberty.classloading.classpath.util.TestUtils;
+import io.openliberty.classloading.dynamic.feature.bell.test.app.DynamicFeatureBellTestServlet;
+import io.openliberty.classloading.dynamic.feature.sharedlib.test.app.DynamicFeatureSharedLibTestServlet;
+import io.openliberty.classloading.dynamic.feature.test.app.DynamicFeatureTestServlet;
 import io.openliberty.classloading.feature.message.test.app.ParentLastFeatureMessageTestServlet;
+import io.openliberty.classloading.shared.feature.lib.SharedFeatureLibImpl;
 import io.openliberty.classloading.lib.path.test.app.LibPathTestServlet;
 import io.openliberty.classloading.library.precedence.test.app.LibPrecedenceBeforeAppTestServlet;
 import io.openliberty.classloading.library.test.app.LibraryUserTestServlet;
@@ -108,7 +113,10 @@ import test.bundle.api4.c.API_C4;
     LibraryPrecedenceBeforeAppTests.class,
     LibraryPrecedenceAfterAppTests.class,
     NativeLibraryTest.class,
-    LibraryServiceTests.class
+    LibraryServiceTests.class,
+    DynamicFeatureLifecycleTest.class,
+    DynamicFeatureSharedLibTest.class,
+    DynamicFeatureBellTest.class
 })
 public class FATSuite {
     static final String CLASSPATH_TEST_WAR_LOADER_SERVER = "classpathTestWarLoader";
@@ -128,6 +136,9 @@ public class FATSuite {
     static final String LIB_PRECEDENCE_AFTER_APP_SERVER = "libPrecedenceAfterAppTest";
     static final String OVERRIDE_LIB_WAR_TEST_SERVER = "overrideLibWarTest";
     static final String LIBRARY_USER_TEST_SERVER = "libraryUserTest";
+    static final String DYNAMIC_FEATURE_LIFECYCLE_TEST_SERVER = "dynamicFeatureLifecycleTest";
+    static final String DYNAMIC_FEATURE_SHARED_LIB_TEST_SERVER = "dynamicFeatureSharedLibTest";
+    static final String DYNAMIC_FEATURE_BELL_TEST_SERVER = "dynamicFeatureBellTest";
 
     // ##### ARCHIVE NAMES #####
     // WAR archive names
@@ -142,6 +153,11 @@ public class FATSuite {
     public static final String TEST_LIB_PRECEDENCE_APP = "testLibPrecedence";
     public static final String TEST_OVERRIDE_LIB_APP = "testOverrideLib";
     public static final String TEST_LIBRARY_USER_APP = "testLibraryUser";
+    public static final String TEST_DYNAMIC_FEATURE_APP = "testDynamicFeatureApp";
+    public static final String TEST_DYNAMIC_FEATURE_SHARED_LIB_APP = "testDynamicFeatureSharedLibApp";
+    public static final String TEST_DYNAMIC_FEATURE_SHARED_LIB = "testSharedFeatureLib";
+    public static final String TEST_DYNAMIC_FEATURE_BELL_APP = "testDynamicFeatureBellApp";
+    public static final String TEST_DYNAMIC_FEATURE_BELL_LIB = "testFeatureBellLib";
 
     // EJB archive names
     public static final String TEST_EJB1 = "testEjb1";
@@ -226,6 +242,11 @@ public class FATSuite {
     static final WebArchive TEST_OVERRIDE_LIB_WAR;
     static final WebArchive TEST_LIB_PRECEDENCE_WAR;
     static final WebArchive TEST_LIBRARY_USER_WAR;
+    static final WebArchive TEST_DYNAMIC_FEATURE_WAR;
+    static final WebArchive TEST_DYNAMIC_FEATURE_SHARED_LIB_WAR;
+    static final JavaArchive TEST_DYNAMIC_FEATURE_SHARED_LIB_JAR;
+    static final WebArchive TEST_DYNAMIC_FEATURE_BELL_WAR;
+    static final JavaArchive TEST_DYNAMIC_FEATURE_BELL_JAR;
 
     // EJB archives
     static final JavaArchive TEST_EJB1_JAR;
@@ -373,6 +394,26 @@ public class FATSuite {
 
             TEST_LIBRARY_USER_WAR = ShrinkHelper.buildDefaultApp(TEST_LIBRARY_USER_APP + ".war",
                                                                    LibraryUserTestServlet.class.getPackage().getName());
+
+            TEST_DYNAMIC_FEATURE_WAR = ShrinkHelper.buildDefaultApp(TEST_DYNAMIC_FEATURE_APP + ".war",
+                                                                     DynamicFeatureTestServlet.class.getPackage().getName());
+
+            TEST_DYNAMIC_FEATURE_SHARED_LIB_WAR = ShrinkHelper.buildDefaultApp(TEST_DYNAMIC_FEATURE_SHARED_LIB_APP + ".war",
+                                                                     DynamicFeatureSharedLibTestServlet.class.getPackage().getName());
+
+            TEST_DYNAMIC_FEATURE_SHARED_LIB_JAR = ShrinkHelper.buildJavaArchive(TEST_DYNAMIC_FEATURE_SHARED_LIB + ".jar",
+                                                                     SharedFeatureLibImpl.class.getPackage().getName());
+
+            TEST_DYNAMIC_FEATURE_BELL_WAR = ShrinkHelper.buildDefaultApp(TEST_DYNAMIC_FEATURE_BELL_APP + ".war",
+                                                                     DynamicFeatureBellTestServlet.class.getPackage().getName());
+
+            // Bell JAR: same SharedFeatureLibImpl class, plus the META-INF/services/ entry
+            // that tells Bell (and ServiceLoader) which interface this JAR provides.
+            TEST_DYNAMIC_FEATURE_BELL_JAR = ShrinkHelper.buildJavaArchive(TEST_DYNAMIC_FEATURE_BELL_LIB + ".jar",
+                                                                     SharedFeatureLibImpl.class.getPackage().getName())
+                .addAsResource(
+                    new StringAsset(SharedFeatureLibImpl.class.getName() + "\n"),
+                    "META-INF/services/io.openliberty.classloading.feature.api.TestFeatureApi");
 
             TEST_RESOURCE_ADAPTOR_JAR = ShrinkHelper.buildJavaArchive(TEST_RESOURCE_ADAPTOR + ".jar",
                                                                       TestResourceAdapter.class.getPackage().getName()).
