@@ -15,17 +15,18 @@ package io.openliberty.classloading.dynamic.feature.test.app;
 import io.openliberty.classloading.feature.api.TestFeatureApi;
 
 /**
- * First in-WAR implementation of {@link TestFeatureApi}, used by the State 1
- * probe of Test 1 (direct application dependency test).
+ * Third in-WAR implementation of {@link TestFeatureApi}, used exclusively by
+ * the State 3 probe of Test 1 (direct application dependency test).
  * <p>
- * Lives in the WAR classloader. A distinct class is used per lifecycle state so
- * that each probe forces {@code ClassLoader.loadClass()} to perform a genuine
- * re-lookup rather than returning a cached result from {@code findLoadedClass()}.
+ * A distinct class is used per lifecycle state so that each probe forces
+ * {@code ClassLoader.loadClass()} to perform a genuine re-lookup rather than
+ * returning a cached result from {@code findLoadedClass()}. In State 3, all
+ * three impl classes are loaded and expected to succeed.
  */
-public class TestFeatureApiImpl implements TestFeatureApi {
+public class TestFeatureApiImpl3 implements TestFeatureApi {
 
     @Override
     public String doWork() {
-        return "TestFeatureApiImpl.doWork() called successfully (state 1)";
+        return "TestFeatureApiImpl3.doWork() called successfully (state 3)";
     }
 }

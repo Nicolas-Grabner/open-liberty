@@ -82,7 +82,7 @@ public class DynamicFeatureBellTest {
     public static LibertyServer server;
 
     private static final String SERVLET_PATH =
-        TEST_DYNAMIC_FEATURE_BELL_APP + "/DynamicFeatureBellTestServlet";
+        TEST_DYNAMIC_FEATURE_BELL_APP + "/DynamicFeatureLifecycleTestServlet";
 
     @BeforeClass
     public static void setupTestServer() throws Exception {
@@ -141,7 +141,7 @@ public class DynamicFeatureBellTest {
     public void testDynamicFeatureBellLifecycle() throws Exception {
         // ── STATE 1: Feature present ─────────────────────────────────────────
         server.setMarkToEndOfLog();
-        FATServletClient.runTest(server, SERVLET_PATH, "probeState1_FeaturePresent");
+        FATServletClient.runTest(server, SERVLET_PATH, "testBellLibraryDependsOnFeatureApi_FeaturePresent");
         assertNotNull("State 1 SUCCESS marker not found in log",
                       server.waitForStringInLogUsingMark("DYNAMIC_FEATURE_BELL_TEST STATE1 - SUCCESS"));
 
@@ -152,7 +152,7 @@ public class DynamicFeatureBellTest {
                       server.waitForStringInLogUsingMark("CWWKF0008I"));
 
         server.setMarkToEndOfLog();
-        FATServletClient.runTest(server, SERVLET_PATH, "probeState2_FeatureRemoved");
+        FATServletClient.runTest(server, SERVLET_PATH, "testBellLibraryDependsOnFeatureApi_FeatureRemoved");
         assertNotNull("State 2 marker not found in log",
                       server.waitForStringInLogUsingMark("DYNAMIC_FEATURE_BELL_TEST STATE2 -"));
 
@@ -163,13 +163,17 @@ public class DynamicFeatureBellTest {
                       server.waitForStringInLogUsingMark("CWWKF0008I"));
 
         server.setMarkToEndOfLog();
-        FATServletClient.runTest(server, SERVLET_PATH, "probeState3_FeatureReAdded");
+        FATServletClient.runTest(server, SERVLET_PATH, "testBellLibraryDependsOnFeatureApi_FeatureReAdded");
         assertNotNull("State 3 marker not found in log",
                       server.waitForStringInLogUsingMark("DYNAMIC_FEATURE_BELL_TEST STATE3 -"));
     }
 
     @AfterClass
     public static void stopServer() throws Exception {
+        // TODO: Future extension — after server stop/restart, verify the application was
+        // reported as "updated" (CWWKZ0003I) rather than simply restarted, confirming that
+        // Liberty correctly refreshes the Bell library AppClassLoader on feature re-add.
+        // See background document Section 7 for details.
         try {
             // CWWKL0041W — classloader no longer valid; expected when the feature bundle
             // is removed while a stale AppClassLoader still holds a reference to it.

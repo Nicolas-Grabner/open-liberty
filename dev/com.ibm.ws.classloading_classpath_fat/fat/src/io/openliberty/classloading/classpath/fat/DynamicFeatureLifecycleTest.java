@@ -64,7 +64,7 @@ public class DynamicFeatureLifecycleTest {
     public static LibertyServer server;
 
     private static final String SERVLET_PATH =
-        TEST_DYNAMIC_FEATURE_APP + "/DynamicFeatureTestServlet";
+        TEST_DYNAMIC_FEATURE_APP + "/DynamicFeatureLifecycleTestServlet";
 
     @BeforeClass
     public static void setupTestServer() throws Exception {
@@ -120,7 +120,7 @@ public class DynamicFeatureLifecycleTest {
     public void testDynamicFeatureLifecycle() throws Exception {
         // ── STATE 1: Feature present ─────────────────────────────────────────
         server.setMarkToEndOfLog();
-        FATServletClient.runTest(server, SERVLET_PATH, "probeState1_FeaturePresent");
+        FATServletClient.runTest(server, SERVLET_PATH, "testAppDirectlyDependsOnFeatureApi_FeaturePresent");
         assertNotNull("State 1 SUCCESS marker not found in log",
                       server.waitForStringInLogUsingMark("DYNAMIC_FEATURE_TEST STATE1 - SUCCESS"));
 
@@ -131,7 +131,7 @@ public class DynamicFeatureLifecycleTest {
                       server.waitForStringInLogUsingMark("CWWKF0008I"));
 
         server.setMarkToEndOfLog();
-        FATServletClient.runTest(server, SERVLET_PATH, "probeState2_FeatureRemoved");
+        FATServletClient.runTest(server, SERVLET_PATH, "testAppDirectlyDependsOnFeatureApi_FeatureRemoved");
         assertNotNull("State 2 marker not found in log",
                       server.waitForStringInLogUsingMark("DYNAMIC_FEATURE_TEST STATE2 -"));
 
@@ -142,13 +142,17 @@ public class DynamicFeatureLifecycleTest {
                       server.waitForStringInLogUsingMark("CWWKF0008I"));
 
         server.setMarkToEndOfLog();
-        FATServletClient.runTest(server, SERVLET_PATH, "probeState3_FeatureReAdded");
+        FATServletClient.runTest(server, SERVLET_PATH, "testAppDirectlyDependsOnFeatureApi_FeatureReAdded");
         assertNotNull("State 3 marker not found in log",
                       server.waitForStringInLogUsingMark("DYNAMIC_FEATURE_TEST STATE3 -"));
     }
 
     @AfterClass
     public static void stopServer() throws Exception {
+        // TODO: Future extension — after server stop/restart, verify the application was
+        // reported as "updated" (CWWKZ0003I) rather than simply restarted, confirming that
+        // Liberty correctly refreshes the app classloader on feature re-add. See background
+        // document Section 7 for details.
         try {
             server.stopServer();
         } finally {
