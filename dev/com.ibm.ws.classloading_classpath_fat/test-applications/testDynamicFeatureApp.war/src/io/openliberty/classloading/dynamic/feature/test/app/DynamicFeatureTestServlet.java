@@ -14,10 +14,6 @@ package io.openliberty.classloading.dynamic.feature.test.app;
 
 import javax.servlet.annotation.WebServlet;
 
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.FrameworkUtil;
-
 import componenttest.app.FATServlet;
 
 /**
@@ -33,20 +29,17 @@ import componenttest.app.FATServlet;
  * Classloader identity is logged in every probe so that architectural analysis
  * of stale-loader scenarios can be done from the server output.
  * <p>
- * <b>Classloader used for probing:</b> {@code getClass().getClassLoader()} — the
- * WAR's {@code AppClassLoader} directly. This is consistent with Test 2 and avoids
- * the {@code ThreadContextClassLoader} wrapper that sits above the {@code AppClassLoader}
- * in the TCCL chain. Using the {@code AppClassLoader} directly enters the delegation
- * chain at the correct level and avoids any initialization side-effects in
- * {@code Class.forName}. Classes are loaded via {@code loader.loadClass(name)}.
+ * Uses {@code getClass().getClassLoader()} (the WAR's {@code AppClassLoader} directly)
+ * and {@code loader.loadClass(name)} — consistent with Tests 2 and 3. This avoids the
+ * {@code ThreadContextClassLoader} wrapper above the {@code AppClassLoader} and the
+ * static-initializer side-effects of {@code Class.forName}.
  */
 @WebServlet("/DynamicFeatureTestServlet")
 public class DynamicFeatureTestServlet extends FATServlet {
 
     private static final long serialVersionUID = 1L;
 
-    private static final String FEATURE_API_CLASS    = "io.openliberty.classloading.feature.api.TestFeatureApi";
-    private static final String FEATURE_BUNDLE_BSN   = "test.feature.api";
+    private static final String FEATURE_API_CLASS = "io.openliberty.classloading.feature.api.TestFeatureApi";
 
     // -------------------------------------------------------------------------
     // State 1 — Feature present at server start
@@ -59,7 +52,6 @@ public class DynamicFeatureTestServlet extends FATServlet {
     public void probeState1_FeaturePresent() throws Exception {
         ClassLoader appCL = getClass().getClassLoader();
         println("DYNAMIC_FEATURE_TEST STATE1 - AppCL: " + appCL);
-        logOsgiBundleState("STATE1");
 
         // Load the API interface via the app classloader (parent-first delegation
         // will find it in the feature bundle).
@@ -100,7 +92,6 @@ public class DynamicFeatureTestServlet extends FATServlet {
     public void probeState2_FeatureRemoved() throws Exception {
         ClassLoader appCL = getClass().getClassLoader();
         println("DYNAMIC_FEATURE_TEST STATE2 - AppCL: " + appCL);
-        logOsgiBundleState("STATE2");
 
         try {
             Class<?> apiClass = appCL.loadClass(FEATURE_API_CLASS);
@@ -149,7 +140,6 @@ public class DynamicFeatureTestServlet extends FATServlet {
     public void probeState3_FeatureReAdded() throws Exception {
         ClassLoader appCL = getClass().getClassLoader();
         println("DYNAMIC_FEATURE_TEST STATE3 - AppCL: " + appCL);
-        logOsgiBundleState("STATE3");
 
         try {
             Class<?> apiClass = appCL.loadClass(FEATURE_API_CLASS);
@@ -198,83 +188,8 @@ public class DynamicFeatureTestServlet extends FATServlet {
     }
 
     // -------------------------------------------------------------------------
-    // Helpers
+    // Helper
     // -------------------------------------------------------------------------
-
-    /**
-     * Logs the OSGi state of the feature bundle ({@code test.feature.api}) at the
-     * time the probe runs. This directly verifies claims that are otherwise only
-     * inferred:
-     * <ul>
-     *   <li>State 1: bundle should be ACTIVE</li>
-     *   <li>State 2: bundle should be UNINSTALLED (or absent from registry entirely)
-     *       — confirms OSGi actually processed the removal, not just Liberty's feature
-     *       layer</li>
-     *   <li>State 3: bundle should be ACTIVE again</li>
-     * </ul>
-     *
-     * OSGi bundle states are integers defined on {@link Bundle}:
-     * 1=UNINSTALLED, 2=INSTALLED, 4=RESOLVED, 8=STARTING, 16=STOPPING, 32=ACTIVE.
-     * The bundle object remaining non-null in State 2 with state UNINSTALLED is the
-     * direct evidence that the Java heap object survives even after OSGi has
-     * logically removed the bundle.
-     */
-    private void logOsgiBundleState(String stateLabel) {
-        try {
-            // FrameworkUtil.getBundle() returns the OSGi Bundle for the class's
-            // classloader. We use this servlet's own class to get the BundleContext
-            // for the WAR's classloader world, then search for the feature bundle.
-            Bundle thisBundle = FrameworkUtil.getBundle(getClass());
-            if (thisBundle == null) {
-                println("DYNAMIC_FEATURE_TEST " + stateLabel + " - OSGi: FrameworkUtil.getBundle() returned null (not in OSGi context)");
-                return;
-            }
-            BundleContext ctx = thisBundle.getBundleContext();
-            if (ctx == null) {
-                println("DYNAMIC_FEATURE_TEST " + stateLabel + " - OSGi: BundleContext is null");
-                return;
-            }
-
-            // Search all bundles for the feature API bundle by symbolic name.
-            Bundle featureBundle = null;
-            for (Bundle b : ctx.getBundles()) {
-                if (FEATURE_BUNDLE_BSN.equals(b.getSymbolicName())) {
-                    featureBundle = b;
-                    break;
-                }
-            }
-
-            if (featureBundle == null) {
-                // Bundle is completely absent from OSGi registry — fully uninstalled and GC eligible.
-                println("DYNAMIC_FEATURE_TEST " + stateLabel + " - OSGi: bundle '" + FEATURE_BUNDLE_BSN + "' NOT FOUND in registry");
-            } else {
-                int state = featureBundle.getState();
-                String stateName = bundleStateName(state);
-                // If bundle is UNINSTALLED but non-null, the Java object still exists on
-                // the heap even though OSGi has logically removed it. This is the direct
-                // evidence of the stale-heap-object situation described in the test comments.
-                println("DYNAMIC_FEATURE_TEST " + stateLabel + " - OSGi: bundle '" + FEATURE_BUNDLE_BSN
-                    + "' found in registry, state=" + stateName + "(" + state + ")"
-                    + ", version=" + featureBundle.getVersion()
-                    + ", id=" + featureBundle.getBundleId()
-                    + ", classloader=" + featureBundle.adapt(org.osgi.framework.wiring.BundleWiring.class));
-            }
-        } catch (Exception e) {
-            println("DYNAMIC_FEATURE_TEST " + stateLabel + " - OSGi: error querying bundle state: " + e);
-        }
-    }
-
-    private static String bundleStateName(int state) {
-        switch (state) {
-            case Bundle.UNINSTALLED: return "UNINSTALLED";
-            case Bundle.INSTALLED:   return "INSTALLED";
-            case Bundle.RESOLVED:    return "RESOLVED";
-            case Bundle.STARTING:    return "STARTING";
-            case Bundle.STOPPING:    return "STOPPING";
-            case Bundle.ACTIVE:      return "ACTIVE";
-            default:                 return "UNKNOWN";
-        }
-    }
 
     private static void println(String message) {
         System.out.println(message);

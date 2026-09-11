@@ -12,6 +12,11 @@
 	<classpathentry kind="src" path="test-applications/testLibPrecedence.war/src"/>
 	<classpathentry kind="src" path="test-applications/testOverrideLib.war/src"/>
 	<classpathentry kind="src" path="test-applications/testLibraryUser.war/src"/>
+	<classpathentry kind="src" path="test-applications/testDynamicFeatureApp.war/src"/>
+	<classpathentry kind="src" path="test-applications/testDynamicFeatureSharedLibApp.war/src"/>
+	<classpathentry kind="src" path="test-applications/testSharedFeatureLib.jar/src"/>
+	<classpathentry kind="src" path="test-applications/testDynamicFeatureBellApp.war/src"/>
+	<classpathentry kind="src" path="test-bundles/testFeatureApiBundle/src"/>
 	<classpathentry kind="src" path="test-applications/testClient1.jar/src"/>
 	<classpathentry kind="src" path="test-applications/testEjb1.jar/src"/>
 	<classpathentry kind="src" path="test-applications/testEjb2.jar/src"/>
