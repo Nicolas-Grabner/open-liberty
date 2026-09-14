@@ -1,0 +1,45 @@
+<server>
+    <featureManager>
+        <feature>servlet-4.0</feature>
+        <feature>componenttest-1.0</feature>
+        <feature>bells-1.0</feature>
+        <feature>testFeatureApi-1.0</feature>
+    </featureManager>
+
+    <include location="../fatTestPorts.xml"/>
+
+    <!--
+        The shared library JAR contains:
+          - SharedFeatureLibImpl (implements TestFeatureApi)
+          - META-INF/services/io.openliberty.classloading.feature.api.TestFeatureApi
+              -> io.openliberty.classloading.shared.feature.lib.SharedFeatureLibImpl
+
+        Bell reads META-INF/services/ from the library at startup and registers
+        each discovered implementation as an OSGi service.  The <library> element
+        is NEVER modified during the test — only the <feature> list changes via
+        changeFeatures().  This isolates the Bell/OSGi path from the classloader
+        invalidation (aclStore eviction) triggered by <library> config changes.
+    -->
+    <library id="testFeatureBellLib">
+        <fileset dir="${server.config.dir}/sharedLibs" includes="testFeatureBellLib.jar"/>
+    </library>
+
+    <bell libraryRef="testFeatureBellLib"/>
+
+    <webApplication location="testDynamicFeatureBellApp.war">
+        <classloader commonLibraryRef="testFeatureBellLib"/>
+    </webApplication>
+
+    <!--
+        getClassLoader permission required by the probe servlet to log classloader
+        identity strings for architectural analysis.
+    -->
+    <javaPermission
+        codeBase="${server.config.dir}/apps/testDynamicFeatureBellApp.war"
+        className="java.lang.RuntimePermission"
+        name="getClassLoader"/>
+    <javaPermission
+        codeBase="${server.config.dir}/sharedLibs/testFeatureBellLib.jar"
+        className="java.lang.RuntimePermission"
+        name="getClassLoader"/>
+</server>
